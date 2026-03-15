@@ -1,0 +1,48 @@
+name: Deploy Airflow DAG
+
+on:
+  push:
+    branches:
+      - feature-steam-api
+
+concurrency:
+  group: deploy-airflow-dag-feature-steam-api
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy DAG to server over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            echo "=== Go to repo ==="
+            cd /home/evgeny/projects/steam_api_test
+
+            echo "=== Update repo ==="
+            git fetch --all
+            git checkout feature-steam-api
+            git pull origin feature-steam-api
+
+            echo "=== Copy DAG to Airflow dags folder ==="
+            cp /home/evgeny/projects/steam_api_test/dags/api_valve_airflow.py /home/evgeny/airflow-docker/dags/
+
+            echo "=== Show copied DAG on host ==="
+            ls -l /home/evgeny/airflow-docker/dags/
+
+            echo "=== Show DAG inside Airflow container ==="
+            docker exec airflow-docker-airflow-scheduler-1 ls -l /opt/airflow/dags
+
+            echo "=== Validate Python syntax ==="
+            docker exec airflow-docker-airflow-scheduler-1 python -m py_compile /opt/airflow/dags/api_valve_airflow.py
+
+            echo "=== Check DAG is registered in Airflow ==="
+            docker exec airflow-docker-airflow-scheduler-1 airflow dags list | grep steam_reviews_api_to_s3
