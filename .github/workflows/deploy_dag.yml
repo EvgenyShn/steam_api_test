@@ -33,7 +33,7 @@ jobs:
             git pull origin feature-steam-api
 
             echo "=== Copy DAG to Airflow dags folder ==="
-            cp /home/evgeny/steam_api_test/dags/api_valve_airflow.py /home/evgeny/airflow-docker/dags/
+            cp /home/evgeny/steam_api_test/dags/EvgSergeev_API_to_S3__steam_reviews.py /home/evgeny/airflow-docker/dags/
 
             echo "=== Show copied DAG on host ==="
             ls -l /home/evgeny/airflow-docker/dags/
@@ -42,7 +42,7 @@ jobs:
             docker exec airflow-docker-airflow-scheduler-1 ls -l /opt/airflow/dags
 
             echo "=== Validate Python syntax ==="
-            docker exec airflow-docker-airflow-scheduler-1 python -m py_compile /opt/airflow/dags/api_valve_airflow.py
+            docker exec airflow-docker-airflow-scheduler-1 python -m py_compile /opt/airflow/dags/EvgSergeev_API_to_S3__steam_reviews.py
 
             echo "=== Check DAG is registered in Airflow ==="
             docker exec airflow-docker-airflow-scheduler-1 airflow dags list | grep steam_reviews_api_to_s3
