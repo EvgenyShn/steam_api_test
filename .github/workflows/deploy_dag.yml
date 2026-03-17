@@ -1,0 +1,78 @@
+name: Deploy Airflow DAG
+
+on:
+  push:
+    branches:
+      - feature-steam-api
+
+concurrency:
+  group: deploy-airflow-dag-feature-steam-api
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy DAG to server over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          port: ${{ secrets.SSH_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+
+            echo "=== WHOAMI ==="
+            whoami
+            hostname
+            pwd
+
+            echo "=== CHECK HOME ==="
+            ls -la /home/evgeny
+
+            echo "=== CHECK REPO ROOT ==="
+            ls -la /home/evgeny/projects/steam_api_test || true
+
+            echo "=== CHECK REPO DAGS ==="
+            ls -la /home/evgeny/projects/steam_api_test/dags || true
+
+            echo "=== CHECK AIRFLOW ROOT ==="
+            ls -la /home/evgeny/airflow-docker || true
+
+            echo "=== CHECK AIRFLOW DAGS HOST PATH ==="
+            ls -la /home/evgeny/airflow-docker/dags || true
+
+            echo "=== GO TO REPO ==="
+            cd /home/evgeny/projects/steam_api_test
+
+            echo "=== GIT STATUS BEFORE PULL ==="
+            git status || true
+            git branch --show-current || true
+
+            echo "=== UPDATE REPO ==="
+            git fetch --all
+            git checkout feature-steam-api
+            git pull origin feature-steam-api
+
+            echo "=== VERIFY DAG FILE EXISTS ==="
+            ls -l /home/evgeny/projects/steam_api_test/dags/EvgSergeev_API_to_S3__steam_reviews.py
+
+            echo "=== COPY DAG TO AIRFLOW DAGS ==="
+            cp /home/evgeny/projects/steam_api_test/dags/EvgSergeev_API_to_S3__steam_reviews.py /home/evgeny/airflow-docker/dags/
+
+            echo "=== SHOW HOST AIRFLOW DAGS AFTER COPY ==="
+            ls -l /home/evgeny/airflow-docker/dags/
+
+            echo "=== CHECK CONTAINER EXISTS ==="
+            docker ps --format 'table {{.Names}}\t{{.Status}}' | grep airflow || true
+
+            echo "=== SHOW DAGS INSIDE CONTAINER ==="
+            docker exec airflow-docker-airflow-scheduler-1 ls -l /opt/airflow/dags
+
+            echo "=== VALIDATE PYTHON SYNTAX ==="
+            docker exec airflow-docker-airflow-scheduler-1 python -m py_compile /opt/airflow/dags/EvgSergeev_API_to_S3__steam_reviews.py
+
+            echo "=== CHECK DAG REGISTERED IN AIRFLOW ==="
+            docker exec airflow-docker-airflow-scheduler-1 airflow dags list | grep steam_reviews_api_to_s3
