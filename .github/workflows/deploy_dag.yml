@@ -25,7 +25,7 @@ jobs:
             set -e
 
             echo "=== Go to repo ==="
-            cd /home/evgeny/projects/steam_api_test
+            cd /home/evgeny/steam_api_test
 
             echo "=== Update repo ==="
             git fetch --all
@@ -33,7 +33,7 @@ jobs:
             git pull origin feature-steam-api
 
             echo "=== Copy DAG to Airflow dags folder ==="
-            cp /home/evgeny/projects/steam_api_test/dags/api_valve_airflow.py /home/evgeny/airflow-docker/dags/
+            cp /home/evgeny/steam_api_test/dags/api_valve_airflow.py /home/evgeny/airflow-docker/dags/
 
             echo "=== Show copied DAG on host ==="
             ls -l /home/evgeny/airflow-docker/dags/
